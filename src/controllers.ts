@@ -1,73 +1,45 @@
 import { Request, Response } from "express";
-import {
-  getPosts,
-  getPostById,
-  createPost,
-  deletePost,
-  getCommentsByPostId,
-} from "./models.js";
+import { posts } from "./data.js";
 
-export const getAllPosts = (req: Request, res: Response) => {
-  const posts = getPosts();
-  res.json({ success: true, data: { posts } });
-};
+export function getAllPosts(req: Request, res: Response) {
+  res.json({
+    success: true,
+    data: { posts },
+  });
+}
 
-export const getPost = (req: Request, res: Response) => {
-  const { id } = req.params as { id: string };
-  const post = getPostById(id);
+export function getPostById(req: Request, res: Response) {
+  const id = Number(req.params.id);
+  const post = posts.find((p) => p.id === id);
 
   if (!post) {
     res.status(404).json({ success: false, message: "Пост не найден" });
     return;
   }
 
-  res.json({ success: true, data: post });
-};
+  res.json({ success: true, data: { post } });
+}
 
-export const createNewPost = (req: Request, res: Response) => {
+export function createPost(req: Request, res: Response) {
   const { content, author } = req.body;
 
-  if (!content) {
-    // Если нет контента
-    res.status(400).json({
-      success: false,
-      error: "Не передан контент",
-    });
+  if (!content || !author) {
+    res.status(400).json({ success: false, message: "Нужны content и author" });
     return;
   }
 
-  const newPost = createPost(content, author); // Создаем новое пост
+  const newPost = {
+    id: String(posts.length + 1),
+    content,
+    author,
+    createdAt: new Date().toISOString(),
+  };
 
-  res.status(201).json({ success: true, data: newPost }); // Ожидает ответ
-};
+  posts.push(newPost);
 
-export const removePost = (req: Request, res: Response) => {
-  const { id } = req.params as { id: string };
-  const isDeleted = deletePost(id);
-  if (!isDeleted) {
-    res.status(404).json({ success: false, message: "Пост не найден" });
-    return;
-  }
+  res.status(201).json({ success: true, data: { post: newPost } });
+}
 
-  res.status(204).send();
-};
-
-export const getPostComments = (req: Request, res: Response) => {
-  const { id } = req.params as { id: string };
-
-  const post = getPostById(id);
-  if (!post) {
-    res.status(404).json({ success: false, error: "Пост не найден" });
-    return;
-  }
-
-  const comments = getCommentsByPostId(id);
-  res.json({ success: true, data: comments });
-};
-
-export const notFound = (req: Request, res: Response) => {
-  res.status(404).json({
-    success: false,
-    message: "Маршрут ${req.method} ${req.path}",
-  });
-};
+export function notFound(req: Request, res: Response) {
+  res.status(404).json({ success: false, message: "Маршрут не найден" });
+}
